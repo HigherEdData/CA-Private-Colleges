@@ -6,9 +6,9 @@ library(scales)
 
 ##
 
-setwd("G:/My Drive/SLLI/FTB Paper/")
-combined_df<- read.csv("final code/cleaned_IIC_Offset_Data_2018-2023.csv") #cleaned csv of all institutions
-cat6_df<- read.csv("final code/cleaned_IIC_Offset_Data_2018-2023-cat6only.csv") #cleaned csv of CAT 6 institutions only
+setwd("D:/GitHub/CA-Private-Colleges")
+combined_df<- read.csv("data/cleaned/cleaned_IIC_Offset_Data_2018-2023.csv") #cleaned csv of all institutions
+cat6_df<- read.csv("data/cleaned/cleaned_IIC_Offset_Data_2018-2023-cat6only.csv") #cleaned csv of CAT 6 institutions only
 
 #####################
 ####################################
@@ -24,6 +24,10 @@ unique_categories
 #################################################################################
 #################################################################################
 ## analysis / graphs begin
+
+#########################################################################
+########           FIGURE 1 CODE              ###########################
+#########################################################################
 
 # ------------------------------------------------------------------
 # Top private institutions
@@ -114,7 +118,22 @@ ggplot(
     plot.caption    = element_text(size = 8, face = "italic", hjust = 0.5)
   )
 
-##################################################################################
+
+####
+#save
+ggsave(
+  filename = "figures/Figure2.png",
+  width    = 10,
+  height   = 6,
+  dpi      = 300,
+  bg       = "white"
+)
+
+
+#########################################################################
+########           FIGURE 2 CODE              ###########################
+#########################################################################
+
 library(ggplot2)
 library(tidyr)
 library(dplyr)
@@ -194,11 +213,11 @@ ggplot(
 ) +
   geom_line(linewidth = 1) +
   geom_point(size = 2.5) +
-  scale_color_manual(values = line_colors,      name = "Other State") +
-  scale_linetype_manual(values = line_patterns,  name = "Other State") +
-  scale_shape_manual(values = point_shapes,      name = "Other State") +
+  scale_color_manual(values = line_colors,      name = "Private Institution") +
+  scale_linetype_manual(values = line_patterns,  name = "Private Institution") +
+  scale_shape_manual(values = point_shapes,      name = "Private Institution") +
   labs(
-    title   = "Total Individuals Offset Over Time by Other State",
+    title   = "Total Individuals Offset Over Time by Private Institution",
     x       = "Year",
     y       = "Total Individuals Offset",
     caption = "Note: totals for top 7 other states in 2023; others aggregated."
@@ -210,8 +229,19 @@ ggplot(
     plot.caption    = element_text(size = 8, face = "italic", hjust = 0.5)
   )
 
+#save
+ggsave(
+  filename = "figures/Figure3.png",
+  width    = 10,
+  height   = 6,
+  dpi      = 300,
+  bg       = "white"
+)
+
+
+
 #########################################################################
-#########################################################################
+########           FIGURE 3 CODE              ###########################
 #########################################################################
 
 # ------------------------------------------------------------------
@@ -298,6 +328,19 @@ ggplot(
     plot.caption    = element_text(size = 8, face = "italic", hjust = 0.5)
   )
 
+#save
+ggsave(
+  filename = "figures/Figure3.png",
+  width    = 10,
+  height   = 6,
+  dpi      = 300,
+  bg       = "white"
+)
+
+
+#########################################################################
+########           TABLE 1 CODE               ###########################
+#########################################################################
 
 #####
 ##Lottery and unclaimed funds summary table
@@ -356,7 +399,7 @@ ft <- summary_tbl %>%
 
 save_as_docx(
   ft,
-  path = "Agency_Summary_Table.docx",
+  path = "figures/Agency_Summary_Table.docx",
   pr_section = prop_section(
     page_size = page_size(orient = "portrait")
   )
@@ -364,7 +407,9 @@ save_as_docx(
 
 ft
 
-########
+#########################################################################
+########           PAPER CALCULATIONS         ###########################
+#########################################################################
 
 #numbers for paper
 totals <- lottery_property_df %>%
@@ -388,6 +433,10 @@ cat("Total (2023 only):  $", formatC(total_2023$Total_2023, format = "f", digits
 ############################################################
 ########################################################################################################################
 
+
+#########################################################################
+########      OPTIONAL APPENDIX FIGURE CODE   ###########################
+#########################################################################
 library(officer)
 
 # --- Build amounts and counts from already-cleaned cat6_df ---
@@ -463,7 +512,7 @@ ft <- display_table %>%
 
 save_as_docx(
   ft,
-  path = "Lottery_UCP_Offsets_Cat6_Table.docx",
+  path = "figures/Lottery_UCP_Offsets_Cat6_Table.docx",
   pr_section = prop_section(
     page_size = page_size(orient = "landscape")
   )

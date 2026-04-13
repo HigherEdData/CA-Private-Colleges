@@ -4,8 +4,8 @@ library(stringr)
 library(ggplot2)
 library(scales)
 
-setwd("G:/My Drive/SLLI/FTB Paper/")
-combined_df <- read.csv("final code/d_IIC_Offset_Data_2018-2023.csv") #PDF extraction in Python
+setwd("D:/GitHub/CA-Private-Colleges")
+combined_df <- read.csv("data/raw/d_IIC_Offset_Data_2018-2023.csv") #PDF extraction in Python
 
 # ------------------------------------------------------------------
 # Step 1: Strip trailing numeric junk from AGENCY.NAME
@@ -111,5 +111,5 @@ combined_df <- combined_df %>%
 cat6_df <- combined_df %>%
   filter(CATEGORY == "6 - OTHER STATES")
 
-write.csv(combined_df, "final code/cleaned_IIC_Offset_Data_2018-2023.csv", row.names = FALSE) 
-write.csv(cat6_df, "final code/cleaned_IIC_Offset_Data_2018-2023-cat6only.csv", row.names = FALSE)
+write.csv(combined_df, "data/cleaned/cleaned_IIC_Offset_Data_2018-2023.csv", row.names = FALSE) 
+write.csv(cat6_df, "data/cleaned/cleaned_IIC_Offset_Data_2018-2023-cat6only.csv", row.names = FALSE)
