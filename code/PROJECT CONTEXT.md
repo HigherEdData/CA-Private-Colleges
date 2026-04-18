@@ -1,4 +1,4 @@
-# Project Context: Extracting infomration from FTB PRA Response to Get IIC Offset Data 2018–2023
+# Project Context: Extracting information from FTB PRA Response to Get IIC Offset Data 2018–2023
 
 ## Purpose
 
