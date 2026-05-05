@@ -131,7 +131,7 @@ ggsave(
 
 
 #########################################################################
-########           FIGURE 2 CODE              ###########################
+########           FIGURE 3 CODE              ###########################
 #########################################################################
 
 library(ggplot2)
@@ -519,3 +519,124 @@ save_as_docx(
 )
 
 ft
+
+
+###############
+## Additional analysis
+
+# --- Lowest-use and highest-use schools by total individuals offset ---
+school_totals <- cat6_df %>%
+  group_by(AGENCY_CLEAN) %>%
+  summarise(Total_Individuals = sum(Total_Count, na.rm = TRUE), .groups = "drop") %>%
+  filter(Total_Individuals > 0) %>%
+  arrange(Total_Individuals)
+
+lowest_school  <- school_totals %>% slice_min(Total_Individuals, n = 1)
+highest_school <- school_totals %>% slice_max(Total_Individuals, n = 1)
+
+cat("\n")
+cat("Lowest-use school:  ", lowest_school$AGENCY_CLEAN, "\n")
+cat("  Offsets:           ", formatC(lowest_school$Total_Individuals, format = "d", big.mark = ","), "\n")
+cat("Highest-use school: ", highest_school$AGENCY_CLEAN, "\n")
+cat("  Offsets:           ", formatC(highest_school$Total_Individuals, format = "d", big.mark = ","), "\n")
+
+
+# --- Median institution ---
+median_offsets <- median(school_totals$Total_Individuals)
+
+cat("Median offsets:      ", formatC(median_offsets, format = "d", big.mark = ","), "\n")
+
+
+# --- Highest user per year ---
+yearly_top <- cat6_df %>%
+  group_by(Year, AGENCY_CLEAN) %>%
+  summarise(Total_Individuals = sum(Total_Count, na.rm = TRUE), .groups = "drop") %>%
+  group_by(Year) %>%
+  slice_max(Total_Individuals, n = 1) %>%
+  ungroup() %>%
+  arrange(Year)
+
+# Check if same institution tops all 6 years
+cat("\nTop institution by year:\n")
+print(yearly_top, n = Inf)
+
+# Institution that tops all years
+top_all_years <- yearly_top %>%
+  count(AGENCY_CLEAN) %>%
+  filter(n == n_distinct(yearly_top$Year))
+
+cat("\nInstitution topping all", n_distinct(yearly_top$Year), "years: ", top_all_years$AGENCY_CLEAN, "\n")
+
+# 2022 and 2023 numbers
+top_2022 <- yearly_top %>% filter(Year == 2022) %>% pull(Total_Individuals)
+top_2023 <- yearly_top %>% filter(Year == 2023) %>% pull(Total_Individuals)
+
+cat("  2022 intercepts:   ", formatC(top_2022, format = "d", big.mark = ","), "\n")
+cat("  2023 intercepts:   ", formatC(top_2023, format = "d", big.mark = ","), "\n")
+
+############
+# --- Average amount per person by institution ---
+avg_per_person <- cat6_df %>%
+  group_by(AGENCY_CLEAN) %>%
+  summarise(
+    Total_Amount      = sum(Total_Amount, na.rm = TRUE),
+    Total_Individuals = sum(Total_Count, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(Total_Individuals > 0) %>%
+  mutate(Avg_Per_Person = Total_Amount / Total_Individuals) %>%
+  arrange(desc(Avg_Per_Person))
+
+largest_avg  <- avg_per_person %>% slice_max(Avg_Per_Person, n = 1)
+smallest_avg <- avg_per_person %>% slice_min(Avg_Per_Person, n = 1)
+median_avg   <- median(avg_per_person$Avg_Per_Person)
+
+cat("\nAverage offset amount per person:\n")
+cat("Largest avg:   ", largest_avg$AGENCY_CLEAN, " — $",
+    formatC(largest_avg$Avg_Per_Person, format = "f", digits = 2, big.mark = ","), "\n")
+cat("Smallest avg:  ", smallest_avg$AGENCY_CLEAN, " — $",
+    formatC(smallest_avg$Avg_Per_Person, format = "f", digits = 2, big.mark = ","), "\n")
+cat("Median school: $", formatC(median_avg, format = "f", digits = 2, big.mark = ","), "\n")
+
+
+
+# --- Impermissible offsets (Lottery + Unclaimed Property) totals ---
+# Uses lottery_property_df already created in the Figure 4 code
+
+impermissible_totals <- cat6_df %>%
+  summarise(
+    Total_Amount      = sum(Lottery_UCP_Amount, na.rm = TRUE),
+    Total_Individuals = sum(Lottery_UCP_Count, na.rm = TRUE)
+  )
+
+impermissible_2023 <- cat6_df %>%
+  filter(Year == 2023) %>%
+  summarise(
+    Total_Amount = sum(Lottery_UCP_Amount, na.rm = TRUE)
+  )
+
+cat("\nImpermissible offsets (Lottery + Unclaimed Property, Category 6):\n")
+cat("Total amount (all years):   $", formatC(impermissible_totals$Total_Amount, format = "f", digits = 2, big.mark = ","), "\n")
+cat("Total individuals (all years):", formatC(impermissible_totals$Total_Individuals, format = "d", big.mark = ","), "\n")
+cat("Total amount (2023):        $", formatC(impermissible_2023$Total_Amount, format = "f", digits = 2, big.mark = ","), "\n")
+
+# --- Verify Figure 4 counts ---
+cat("\nFigure 4 verification:\n")
+cat("Institutions with >$1,000 in any year (highlighted): ", length(big_agencies), "\n")
+cat("Total unique institutions with impermissible offsets: ",
+    n_distinct(lottery_property_df$AGENCY_CLEAN[lottery_property_df$Total_Amount > 0]), "\n")
+
+
+
+# --- Total offsets for private institutions 2018-2023 ---
+private_totals <- cat6_df %>%
+  summarise(
+    Total_Amount = sum(Total_Amount, na.rm = TRUE),
+    Num_Years    = n_distinct(Year),
+    Avg_Per_Year = Total_Amount / n_distinct(Year)
+  )
+
+cat("\nPrivate institution offsets (Category 6), 2018-2023:\n")
+cat("Total amount:     $", formatC(private_totals$Total_Amount, format = "f", digits = 2, big.mark = ","), "\n")
+cat("Number of years:   ", private_totals$Num_Years, "\n")
+cat("Average per year: $", formatC(private_totals$Avg_Per_Year, format = "f", digits = 2, big.mark = ","), "\n")
