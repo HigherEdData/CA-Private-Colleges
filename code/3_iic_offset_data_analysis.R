@@ -217,9 +217,9 @@ ggplot(
   scale_linetype_manual(values = line_patterns,  name = "Private Institution") +
   scale_shape_manual(values = point_shapes,      name = "Private Institution") +
   labs(
-    title   = "Total Individuals Offset Over Time by Private Institution",
+    title   = "Offsets Over Time by Private Institution",
     x       = "Year",
-    y       = "Total Individuals Offset",
+    y       = "Number of Offset Events",
     caption = "Note: totals for top 7 other states in 2023; others aggregated."
   ) +
   scale_y_continuous(labels = comma) +
