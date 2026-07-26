@@ -3,7 +3,7 @@ library(tidyr)
 library(stringr)
 library(ggplot2)
 library(scales)
-
+library(svglite)
 ##
 
 setwd("D:/GitHub/CA-Private-Colleges")
@@ -26,7 +26,7 @@ unique_categories
 ## analysis / graphs begin
 
 #########################################################################
-########           FIGURE 1 CODE              ###########################
+########           FIGURE 2 CODE              ###########################
 #########################################################################
 
 # ------------------------------------------------------------------
@@ -122,7 +122,7 @@ ggplot(
 ####
 #save
 ggsave(
-  filename = "figures/Figure2.png",
+  filename = "figures/Figure2.svg",
   width    = 10,
   height   = 6,
   dpi      = 300,
@@ -231,7 +231,7 @@ ggplot(
 
 #save
 ggsave(
-  filename = "figures/Figure3.png",
+  filename = "figures/Figure3.svg",
   width    = 10,
   height   = 6,
   dpi      = 300,
@@ -330,7 +330,7 @@ ggplot(
 
 #save
 ggsave(
-  filename = "figures/Figure4.png",
+  filename = "figures/Figure4.svg",
   width    = 10,
   height   = 6,
   dpi      = 300,

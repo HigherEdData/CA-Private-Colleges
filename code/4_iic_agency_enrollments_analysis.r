@@ -5,6 +5,7 @@ library(ggplot2)
 library(scales)
 library(lubridate)
 library(readr)
+library(svglite)
 
 setwd("D:/GitHub/CA-Private-Colleges")
 
@@ -88,7 +89,7 @@ ggplot(enr, aes(x = Enrollment_Date, y = School)) +
 
 
 ggsave(
-  filename = "figures/Figure1.png",
+  filename = "figures/Figure1.svg",
   width    = 10,
   height   = 6,
   dpi      = 300,
