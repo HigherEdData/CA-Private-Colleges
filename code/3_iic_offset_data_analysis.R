@@ -34,30 +34,73 @@ unique_categories
 # ------------------------------------------------------------------
 
 #using cat6_df from above
+#########################################################################
+########           FIGURE 2 CODE              ###########################
+#########################################################################
 
-agency_totals_2023 <- cat6_df %>%
-  filter(Year == 2023) %>%
-  group_by(AGENCY_CLEAN) %>%
-  summarise(Total_2023 = sum(Total_Amount, na.rm = TRUE), .groups = "drop") %>%
-  arrange(desc(Total_2023))
+# ------------------------------------------------------------------
+# Create one institution-year dataset
+# ------------------------------------------------------------------
 
-top_7_agencies <- head(agency_totals_2023$AGENCY_CLEAN, 7)
-
-# need to group at this level because some agency names appear twice in the same year 
-# e.g., STANFORD UNIVERSITY in 2020
-top_7_df <- cat6_df %>%
-  filter(AGENCY_CLEAN %in% top_7_agencies) %>%
+# Collapse duplicate institution-year rows and explicitly add zeroes
+# for years in which an institution had no offsets.
+offset_amounts_long <- cat6_df %>%
   group_by(AGENCY_CLEAN, Year) %>%
-  summarise(Total_Amount = sum(Total_Amount, na.rm = TRUE), .groups = "drop")
+  summarise(
+    Total_Amount = sum(Total_Amount, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  complete(
+    AGENCY_CLEAN,
+    Year = 2018:2023,
+    fill = list(Total_Amount = 0)
+  )
 
-remaining_df <- cat6_df %>%
+# ------------------------------------------------------------------
+# Identify seven institutions with highest cumulative amounts
+# ------------------------------------------------------------------
+
+agency_totals_all <- offset_amounts_long %>%
+  group_by(AGENCY_CLEAN) %>%
+  summarise(
+    Total_All = sum(Total_Amount, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(Total_All))
+
+top_7_agencies <- head(agency_totals_all$AGENCY_CLEAN, 7)
+
+# ------------------------------------------------------------------
+# Keep top seven institutions separate
+# ------------------------------------------------------------------
+
+top_7_df <- offset_amounts_long %>%
+  filter(AGENCY_CLEAN %in% top_7_agencies)
+
+# ------------------------------------------------------------------
+# Combine remaining ten institutions
+# ------------------------------------------------------------------
+
+remaining_df <- offset_amounts_long %>%
   filter(!AGENCY_CLEAN %in% top_7_agencies) %>%
   group_by(Year) %>%
-  summarise(Total_Amount = sum(Total_Amount, na.rm = TRUE), .groups = "drop") %>%
+  summarise(
+    Total_Amount = sum(Total_Amount, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
   mutate(AGENCY_CLEAN = "Remaining Private Institutions")
 
+# ------------------------------------------------------------------
+# Dataset used by ggplot
+# ------------------------------------------------------------------
+
 plot_df <- bind_rows(top_7_df, remaining_df) %>%
-  mutate(AGENCY_PLOT = factor(AGENCY_CLEAN, levels = c(top_7_agencies, "Remaining Private Institutions")))
+  mutate(
+    AGENCY_PLOT = factor(
+      AGENCY_CLEAN,
+      levels = c(top_7_agencies, "Remaining Private Institutions")
+    )
+  )
 
 # --- 8 distinct linetypes (including two custom hex-string patterns) ---
 line_patterns <- c(
@@ -100,7 +143,7 @@ ggplot(
     group    = AGENCY_PLOT
   )
 ) +
-  geom_line(size = 1) +
+  geom_line(linewidth = 1) +
   geom_point(size = 2.5) +
   scale_color_manual(values = line_colors,    name = "Private Institution") +
   scale_linetype_manual(values = line_patterns, name = "Private Institution") +
@@ -109,7 +152,7 @@ ggplot(
     title   = "Total Offset Amount Over Time by Private Institution",
     x       = "Year",
     y       = "Total Offset Amount",
-    caption = "Note: totals for top 7 private institutions in 2023; others aggregated."
+    caption = "Note: The seven institutions with the highest cumulative offset amounts \nfrom 2018–2023 are shown individually; the remaining ten are aggregated."
   ) +
   scale_y_continuous(labels = comma) +
   theme_minimal() +
@@ -138,41 +181,68 @@ library(ggplot2)
 library(tidyr)
 library(dplyr)
 library(scales)
-library(stringr)
 
-total_offset_count_columns <- grep("TOTAL.OFFSET.COUNT$", names(combined_df), value = TRUE)
+# ------------------------------------------------------------------
+# Create one institution-year dataset of offset events
+# ------------------------------------------------------------------
 
-total_people_long <- cat6_df %>%
-  mutate(
-    Year = as.numeric(str_extract(CALENDAR.YEAR, "\\d{4}")),
-    Total_People_Involved = replace_na(as.numeric(gsub("[,]", "", Total.OFFSET.COUNT)), 0)
-  ) %>%
-  select(AGENCY_CLEAN, CATEGORY, Year, Total_People_Involved) %>%
-  filter(Total_People_Involved > 0)
-
-
-agency_totals_2023 <- total_people_long %>%
-  filter(Year == 2023) %>%
-  group_by(AGENCY_CLEAN) %>%
-  summarise(Total_2023 = sum(Total_People_Involved, na.rm = TRUE), .groups = "drop") %>%
-  arrange(desc(Total_2023))
-
-top_7_agencies <- head(agency_totals_2023$AGENCY_CLEAN, 7)
-
-top_7_df <- total_people_long %>%
-  filter(AGENCY_CLEAN %in% top_7_agencies) %>%
+offset_events_long <- cat6_df %>%
   group_by(AGENCY_CLEAN, Year) %>%
-  summarise(Total_People_Involved = sum(Total_People_Involved, na.rm = TRUE), .groups = "drop")
+  summarise(
+    Offset_Events = sum(Total_Count, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  complete(
+    AGENCY_CLEAN,
+    Year = 2018:2023,
+    fill = list(Offset_Events = 0)
+  )
 
-remaining_df <- total_people_long %>%
+# ------------------------------------------------------------------
+# Identify seven institutions with highest cumulative event counts
+# ------------------------------------------------------------------
+
+agency_event_totals_all <- offset_events_long %>%
+  group_by(AGENCY_CLEAN) %>%
+  summarise(
+    Total_All = sum(Offset_Events, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(Total_All))
+
+top_7_agencies <- head(agency_event_totals_all$AGENCY_CLEAN, 7)
+
+# ------------------------------------------------------------------
+# Keep top seven institutions separate
+# ------------------------------------------------------------------
+
+top_7_df <- offset_events_long %>%
+  filter(AGENCY_CLEAN %in% top_7_agencies)
+
+# ------------------------------------------------------------------
+# Aggregate the remaining ten institutions
+# ------------------------------------------------------------------
+
+remaining_df <- offset_events_long %>%
   filter(!AGENCY_CLEAN %in% top_7_agencies) %>%
   group_by(Year) %>%
-  summarise(Total_People_Involved = sum(Total_People_Involved, na.rm = TRUE), .groups = "drop") %>%
+  summarise(
+    Offset_Events = sum(Offset_Events, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
   mutate(AGENCY_CLEAN = "Remaining Private Institutions")
 
-plot_df <- bind_rows(top_7_df, remaining_df) %>%
-  mutate(AGENCY_CLEAN = factor(AGENCY_CLEAN, levels = c(top_7_agencies, "Remaining Private Institutions")))
+# ------------------------------------------------------------------
+# Dataset used by ggplot
+# ------------------------------------------------------------------
 
+plot_df <- bind_rows(top_7_df, remaining_df) %>%
+  mutate(
+    AGENCY_CLEAN = factor(
+      AGENCY_CLEAN,
+      levels = c(top_7_agencies, "Remaining Private Institutions")
+    )
+  )
 # --- 8 distinct linetypes ---
 line_patterns <- c(
   "solid",
@@ -185,7 +255,7 @@ line_patterns <- c(
   "F282"
 )
 
-# --- 8 colours with spread-out grayscale luminance ---
+# --- 8 colours ---
 line_colors <- c(
   "#000000",
   "#D55E00",
@@ -204,7 +274,7 @@ ggplot(
   plot_df,
   aes(
     x        = Year,
-    y        = Total_People_Involved,
+    y        = Offset_Events,
     color    = AGENCY_CLEAN,
     linetype = AGENCY_CLEAN,
     shape    = AGENCY_CLEAN,
@@ -213,31 +283,45 @@ ggplot(
 ) +
   geom_line(linewidth = 1) +
   geom_point(size = 2.5) +
-  scale_color_manual(values = line_colors,      name = "Private Institution") +
-  scale_linetype_manual(values = line_patterns,  name = "Private Institution") +
-  scale_shape_manual(values = point_shapes,      name = "Private Institution") +
+  scale_color_manual(
+    values = line_colors,
+    name = "Private Institution"
+  ) +
+  scale_linetype_manual(
+    values = line_patterns,
+    name = "Private Institution"
+  ) +
+  scale_shape_manual(
+    values = point_shapes,
+    name = "Private Institution"
+  ) +
   labs(
-    title   = "Offsets Over Time by Private Institution",
-    x       = "Year",
-    y       = "Number of Offset Events",
-    caption = "Note: totals for top 7 other states in 2023; others aggregated."
+    title = "Offset Events Over Time by Private Institution",
+    x = "Year",
+    y = "Number of Offset Events",
+    caption = paste0(
+      "Note: The seven institutions with the highest cumulative number of offset events \nfrom 2018–2023 are shown individually; ",
+      "the remaining ten are aggregated."
+    )
   ) +
   scale_y_continuous(labels = comma) +
   theme_minimal() +
   theme(
     legend.position = "right",
-    plot.caption    = element_text(size = 8, face = "italic", hjust = 0.5)
+    plot.caption = element_text(
+      size = 8,
+      face = "italic",
+      hjust = 0.5
+    )
   )
 
-#save
 ggsave(
   filename = "figures/Figure3.svg",
-  width    = 10,
-  height   = 6,
-  dpi      = 300,
-  bg       = "white"
+  width = 10,
+  height = 6,
+  dpi = 300,
+  bg = "white"
 )
-
 
 
 #########################################################################
@@ -349,18 +433,18 @@ ggsave(
 library(officer)
 library(flextable)
 
-# --- Build summary_tbl from cat6_df ---
 summary_tbl <- cat6_df %>%
   group_by(AGENCY_CLEAN) %>%
   summarise(
-    Years_Appearing                              = n_distinct(Year[Total_Count > 0]),
-    `Total Individuals Offset`                   = sum(Total_Count, na.rm = TRUE),
-    `Total Offset Amount`                        = sum(Total_Amount, na.rm = TRUE),
-    `Total Unclaimed Property+Lottery Amounts`    = sum(Lottery_UCP_Amount, na.rm = TRUE),
-    `Total Individuals Illegally Offset`         = sum(Lottery_UCP_Count, na.rm = TRUE),
+    Years_Appearing = n_distinct(Year[Total_Count > 0]),
+    `Total Offset Events` = sum(Total_Count, na.rm = TRUE),
+    `Total Offset Amount` = sum(Total_Amount, na.rm = TRUE),
+    `Lottery + Unclaimed Property Offset Events` =
+      sum(Lottery_UCP_Count, na.rm = TRUE),
+    `Lottery + Unclaimed Property Offset Amount` =
+      sum(Lottery_UCP_Amount, na.rm = TRUE),
     .groups = "drop"
   )
-
 # --- Format and save as flextable ---
 border_h     <- fp_border(color = "gray70", width = 0.5)
 border_thick <- fp_border(color = "black", width = 1.5)
@@ -368,14 +452,53 @@ border_thick <- fp_border(color = "black", width = 1.5)
 ft <- summary_tbl %>%
   arrange(AGENCY_CLEAN) %>%
   mutate(
-    `Total Offset Amount` = ifelse(`Total Offset Amount` == 0, "",
-                                   paste0("$", formatC(`Total Offset Amount`, format = "f", digits = 0, big.mark = ","))),
-    `Total Unclaimed Property+Lottery Amounts` = ifelse(`Total Unclaimed Property+Lottery Amounts` == 0, "",
-                                                        paste0("$", formatC(`Total Unclaimed Property+Lottery Amounts`, format = "f", digits = 0, big.mark = ","))),
-    `Total Individuals Offset` = ifelse(`Total Individuals Offset` == 0, "",
-                                        formatC(`Total Individuals Offset`, format = "d", big.mark = ",")),
-    `Total Individuals Illegally Offset` = ifelse(`Total Individuals Illegally Offset` == 0, "",
-                                                  formatC(`Total Individuals Illegally Offset`, format = "d", big.mark = ","))
+    `Total Offset Amount` = ifelse(
+      `Total Offset Amount` == 0,
+      "",
+      paste0(
+        "$",
+        formatC(
+          `Total Offset Amount`,
+          format = "f",
+          digits = 0,
+          big.mark = ","
+        )
+      )
+    ),
+    
+    `Lottery + Unclaimed Property Offset Amount` = ifelse(
+      `Lottery + Unclaimed Property Offset Amount` == 0,
+      "",
+      paste0(
+        "$",
+        formatC(
+          `Lottery + Unclaimed Property Offset Amount`,
+          format = "f",
+          digits = 0,
+          big.mark = ","
+        )
+      )
+    ),
+    
+    `Total Offset Events` = ifelse(
+      `Total Offset Events` == 0,
+      "",
+      formatC(
+        `Total Offset Events`,
+        format = "d",
+        big.mark = ","
+      )
+    ),
+    
+    `Lottery + Unclaimed Property Offset Events` = ifelse(
+      `Lottery + Unclaimed Property Offset Events` == 0,
+      "",
+      formatC(
+        `Lottery + Unclaimed Property Offset Events`,
+        format = "d",
+        big.mark = ","
+      )
+    )
   ) %>%
   rename(Agency = AGENCY_CLEAN) %>%
   flextable() %>%
@@ -391,11 +514,11 @@ ft <- summary_tbl %>%
   padding(padding = 2, part = "all") %>%
   width(j = "Agency", width = 2) %>%
   width(j = "Years_Appearing", width = 0.6) %>%
-  width(j = "Total Individuals Offset", width = 0.8) %>%
+  width(j = "Total Offset Events", width = 0.8) %>%
   width(j = "Total Offset Amount", width = 1) %>%
-  width(j = "Total Unclaimed Property+Lottery Amounts", width = 1.2) %>%
-  width(j = "Total Individuals Illegally Offset", width = 0.9) %>%
-  set_caption("Summary of Offset Amounts and Individuals by Agency (Category 6)")
+  width(j = "Lottery + Unclaimed Property Offset Events", width = 1.0) %>%
+  width(j = "Lottery + Unclaimed Property Offset Amount", width = 1.2) %>%
+  set_caption("Summary of Offset Amounts and Events by Private Institution")
 
 save_as_docx(
   ft,
@@ -432,6 +555,35 @@ cat("Total (2023 only):  $", formatC(total_2023$Total_2023, format = "f", digits
 
 ############################################################
 ########################################################################################################################
+#checking figures
+
+# --- Highest total offset amount per year ---
+yearly_top_amount <- cat6_df %>%
+  group_by(Year, AGENCY_CLEAN) %>%
+  summarise(
+    Total_Amount = sum(Total_Amount, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  group_by(Year) %>%
+  slice_max(Total_Amount, n = 1, with_ties = TRUE) %>%
+  ungroup() %>%
+  arrange(Year)
+
+cat("\nTop institution by total offset amount each year:\n")
+print(yearly_top_amount, n = Inf)
+
+# Check whether the same institution is #1 in every year
+top_amount_all_years <- yearly_top_amount %>%
+  count(AGENCY_CLEAN) %>%
+  filter(n == n_distinct(yearly_top_amount$Year))
+
+cat(
+  "\nInstitution topping all",
+  n_distinct(yearly_top_amount$Year),
+  "years by total offset amount:",
+  paste(top_amount_all_years$AGENCY_CLEAN, collapse = ", "),
+  "\n"
+)
 
 
 #########################################################################
@@ -508,7 +660,7 @@ ft <- display_table %>%
   padding(padding = 2, part = "all") %>%
   width(j = "Private Institution", width = 2) %>%
   autofit(add_w = 0) %>%
-  set_caption("Lottery and Unclaimed Property Offset Amounts by Private Institution (Category 6)\nParentheses show number of individuals.")
+  set_caption("Lottery and Unclaimed Property Offset Amounts by Private Institution\nParentheses show number of offset events.")
 
 save_as_docx(
   ft,
@@ -524,90 +676,85 @@ ft
 ###############
 ## Additional analysis
 
-# --- Lowest-use and highest-use schools by total individuals offset ---
+# --- Lowest-use and highest-use schools by total offset events ---
 school_totals <- cat6_df %>%
   group_by(AGENCY_CLEAN) %>%
-  summarise(Total_Individuals = sum(Total_Count, na.rm = TRUE), .groups = "drop") %>%
-  filter(Total_Individuals > 0) %>%
-  arrange(Total_Individuals)
+  summarise(
+    Total_Events = sum(Total_Count, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(Total_Events > 0) %>%
+  arrange(Total_Events)
 
-lowest_school  <- school_totals %>% slice_min(Total_Individuals, n = 1)
-highest_school <- school_totals %>% slice_max(Total_Individuals, n = 1)
+lowest_school  <- school_totals %>% slice_min(Total_Events, n = 1)
+highest_school <- school_totals %>% slice_max(Total_Events, n = 1)
 
 cat("\n")
-cat("Lowest-use school:  ", lowest_school$AGENCY_CLEAN, "\n")
-cat("  Offsets:           ", formatC(lowest_school$Total_Individuals, format = "d", big.mark = ","), "\n")
-cat("Highest-use school: ", highest_school$AGENCY_CLEAN, "\n")
-cat("  Offsets:           ", formatC(highest_school$Total_Individuals, format = "d", big.mark = ","), "\n")
+cat("Lowest-use school: ", lowest_school$AGENCY_CLEAN, "\n")
+cat("  Offset events:   ",
+    formatC(lowest_school$Total_Events, format = "d", big.mark = ","), "\n")
+cat("Highest-use school:", highest_school$AGENCY_CLEAN, "\n")
+cat("  Offset events:   ",
+    formatC(highest_school$Total_Events, format = "d", big.mark = ","), "\n")
+
+# Median institution
+median_offsets <- median(school_totals$Total_Events)
+cat("Median offset events:",
+    formatC(median_offsets, format = "d", big.mark = ","), "\n")
 
 
-# --- Median institution ---
-median_offsets <- median(school_totals$Total_Individuals)
-
-cat("Median offsets:      ", formatC(median_offsets, format = "d", big.mark = ","), "\n")
-
-
-# --- Highest user per year ---
+# --- Highest number of offset events per year ---
 yearly_top <- cat6_df %>%
   group_by(Year, AGENCY_CLEAN) %>%
-  summarise(Total_Individuals = sum(Total_Count, na.rm = TRUE), .groups = "drop") %>%
+  summarise(
+    Total_Events = sum(Total_Count, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
   group_by(Year) %>%
-  slice_max(Total_Individuals, n = 1) %>%
+  slice_max(Total_Events, n = 1, with_ties = TRUE) %>%
   ungroup() %>%
   arrange(Year)
 
-# Check if same institution tops all 6 years
-cat("\nTop institution by year:\n")
+cat("\nTop institution by offset events each year:\n")
 print(yearly_top, n = Inf)
 
-# Institution that tops all years
-top_all_years <- yearly_top %>%
-  count(AGENCY_CLEAN) %>%
-  filter(n == n_distinct(yearly_top$Year))
 
-cat("\nInstitution topping all", n_distinct(yearly_top$Year), "years: ", top_all_years$AGENCY_CLEAN, "\n")
-
-# 2022 and 2023 numbers
-top_2022 <- yearly_top %>% filter(Year == 2022) %>% pull(Total_Individuals)
-top_2023 <- yearly_top %>% filter(Year == 2023) %>% pull(Total_Individuals)
-
-cat("  2022 intercepts:   ", formatC(top_2022, format = "d", big.mark = ","), "\n")
-cat("  2023 intercepts:   ", formatC(top_2023, format = "d", big.mark = ","), "\n")
-
-############
-# --- Average amount per person by institution ---
-avg_per_person <- cat6_df %>%
+# --- Average amount per offset event by institution ---
+avg_per_event <- cat6_df %>%
   group_by(AGENCY_CLEAN) %>%
   summarise(
-    Total_Amount      = sum(Total_Amount, na.rm = TRUE),
-    Total_Individuals = sum(Total_Count, na.rm = TRUE),
+    Total_Amount = sum(Total_Amount, na.rm = TRUE),
+    Total_Events = sum(Total_Count, na.rm = TRUE),
     .groups = "drop"
   ) %>%
-  filter(Total_Individuals > 0) %>%
-  mutate(Avg_Per_Person = Total_Amount / Total_Individuals) %>%
-  arrange(desc(Avg_Per_Person))
+  filter(Total_Events > 0) %>%
+  mutate(Avg_Per_Event = Total_Amount / Total_Events) %>%
+  arrange(desc(Avg_Per_Event))
 
-largest_avg  <- avg_per_person %>% slice_max(Avg_Per_Person, n = 1)
-smallest_avg <- avg_per_person %>% slice_min(Avg_Per_Person, n = 1)
-median_avg   <- median(avg_per_person$Avg_Per_Person)
+largest_avg  <- avg_per_event %>% slice_max(Avg_Per_Event, n = 1)
+smallest_avg <- avg_per_event %>% slice_min(Avg_Per_Event, n = 1)
+median_avg   <- median(avg_per_event$Avg_Per_Event)
 
-cat("\nAverage offset amount per person:\n")
-cat("Largest avg:   ", largest_avg$AGENCY_CLEAN, " — $",
-    formatC(largest_avg$Avg_Per_Person, format = "f", digits = 2, big.mark = ","), "\n")
-cat("Smallest avg:  ", smallest_avg$AGENCY_CLEAN, " — $",
-    formatC(smallest_avg$Avg_Per_Person, format = "f", digits = 2, big.mark = ","), "\n")
-cat("Median school: $", formatC(median_avg, format = "f", digits = 2, big.mark = ","), "\n")
-
-
+cat("\nAverage offset amount per event:\n")
+cat("Largest avg: ", largest_avg$AGENCY_CLEAN, " — $",
+    formatC(largest_avg$Avg_Per_Event, format = "f", digits = 2, big.mark = ","), "\n")
+cat("Smallest avg:", smallest_avg$AGENCY_CLEAN, " — $",
+    formatC(smallest_avg$Avg_Per_Event, format = "f", digits = 2, big.mark = ","), "\n")
+cat("Median school: $",
+    formatC(median_avg, format = "f", digits = 2, big.mark = ","), "\n")
 
 # --- Impermissible offsets (Lottery + Unclaimed Property) totals ---
 # Uses lottery_property_df already created in the Figure 4 code
 
 impermissible_totals <- cat6_df %>%
   summarise(
-    Total_Amount      = sum(Lottery_UCP_Amount, na.rm = TRUE),
-    Total_Individuals = sum(Lottery_UCP_Count, na.rm = TRUE)
+    Total_Amount = sum(Lottery_UCP_Amount, na.rm = TRUE),
+    Total_Events = sum(Lottery_UCP_Count, na.rm = TRUE)
   )
+
+cat("Total offset events (all years):",
+    formatC(impermissible_totals$Total_Events,
+            format = "d", big.mark = ","), "\n")
 
 impermissible_2023 <- cat6_df %>%
   filter(Year == 2023) %>%
@@ -617,7 +764,7 @@ impermissible_2023 <- cat6_df %>%
 
 cat("\nImpermissible offsets (Lottery + Unclaimed Property, Category 6):\n")
 cat("Total amount (all years):   $", formatC(impermissible_totals$Total_Amount, format = "f", digits = 2, big.mark = ","), "\n")
-cat("Total individuals (all years):", formatC(impermissible_totals$Total_Individuals, format = "d", big.mark = ","), "\n")
+cat("Total offset events (all years):", formatC(impermissible_totals$Total_Events, format = "d", big.mark = ","), "\n")
 cat("Total amount (2023):        $", formatC(impermissible_2023$Total_Amount, format = "f", digits = 2, big.mark = ","), "\n")
 
 # --- Verify Figure 4 counts ---
